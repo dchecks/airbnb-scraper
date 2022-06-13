@@ -1,19 +1,12 @@
-from urllib import response
-import scrapy
+from datetime import date, timedelta
 
-from datetime import date, timedelta, datetime
-from elasticsearch_dsl.index import Index
-from sklearn import neighbors
-from logging import LoggerAdapter
-from scrapy.selector import Selector
-from scrapy.http import HtmlResponse
+import scrapy
 
 from deepbnb.api.ExploreSearch import ExploreSearch
 from deepbnb.api.PdpPlatformSections import PdpPlatformSections
 from deepbnb.api.PdpReviews import PdpReviews
 from deepbnb.model import Listing
-from pprint import pprint
-import pandas as pd
+
 
 class AirbnbSpider(scrapy.Spider):
     """Airbnb Spider
