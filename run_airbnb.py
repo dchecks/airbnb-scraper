@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-import scrapy
+import scrapy.cmdline
 
 logging.basicConfig(
     level=logging.DEBUG,
