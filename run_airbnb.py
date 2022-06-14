@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime
 
 import scrapy.cmdline
@@ -15,15 +16,16 @@ def run_scrape(spider_name):
         locations = location_file.read().splitlines()
 
     scrape_date = datetime.now().strftime("%Y:%m:%d")
-    output_str = f"weekly/{scrape_date}-nz.xlsx"
+    output_str = f"weekly/{scrape_date}-nz.csv:csv"
 
     for location in locations:
         query_str = f"{location}, New Zealand"
         logging.debug(f"Scraping search string: '{query_str}' to {output_str}")
         scrapy.cmdline.execute(["scrapy", "crawl", f"{spider_name}", "-a", f"query={query_str}", "-o", f"{output_str}"])
+        time.sleep(5)
 
 
 if __name__ == "__main__":
     logging.info("Starting scrape")
-    spider = "airbnb_discover"
+    spider = "airbnb"
     run_scrape(spider)
