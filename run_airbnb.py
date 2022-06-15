@@ -23,7 +23,7 @@ query = """
 region_query = client.query(query)
 regions = []
 for row in region_query:
-    regions.append(row)
+    regions.append(row[1])
 
 def run_scrape(spider_name):
     scrape_date = datetime.now().strftime("%Y:%m:%d")
