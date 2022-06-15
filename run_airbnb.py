@@ -1,8 +1,10 @@
 import logging
+import os
 import time
 from datetime import datetime
 
 import scrapy.cmdline
+from google.cloud import bigquery
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -10,16 +12,25 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()])
 logging.getLogger("__name__").setLevel(logging.DEBUG)
 
+# Connect to BigQuery project
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "../dev-aicam-a12eebd3222c.json"
+client = bigquery.Client("dev-aicam")
+
+# Create list of regions to search, from regions table
+query = """
+        SELECT region as city,SubRegion,Air_bnb as city_url FROM `dev-aicam.booking.region` 
+"""
+region_query = client.query(query)
+regions = []
+for row in region_query:
+    regions.append(row)
 
 def run_scrape(spider_name):
-    with open("locations-nz.txt") as location_file:
-        locations = location_file.read().splitlines()
-
     scrape_date = datetime.now().strftime("%Y:%m:%d")
     output_str = f"weekly/{scrape_date}-nz.csv:csv"
 
-    for location in locations:
-        query_str = f"{location}, New Zealand"
+    for region in regions:
+        query_str = f"{region}, New Zealand"
         logging.debug(f"Scraping search string: '{query_str}' to {output_str}")
         scrapy.cmdline.execute(["scrapy", "crawl", f"{spider_name}", "-a", f"query={query_str}", "-o", f"{output_str}"])
         time.sleep(5)
