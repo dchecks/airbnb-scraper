@@ -69,6 +69,7 @@ class DeepbnbSpiderMiddleware(object):
 
         # Must return an iterable of Request, dict or Item objects.
         for i in result:
+            print(f"Result: {i}")
             yield i
 
     def process_spider_exception(self, response, exception, spider):

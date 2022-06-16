@@ -6,6 +6,8 @@ from datetime import datetime
 import scrapy.cmdline
 from google.cloud import bigquery
 
+from deepbnb.middlewares import DeepbnbSpiderMiddleware
+
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)-5s - %(name)-20.20s - %(message)s - (%(filename)s:%(lineno)s)",
