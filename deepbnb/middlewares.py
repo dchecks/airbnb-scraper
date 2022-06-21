@@ -18,6 +18,9 @@ from scrapy.utils.response import response_status_message
 
 import time
 
+from deepbnb.data.big_query import UploadBigquery
+
+
 class TooManyRequestsRetryMiddleware(RetryMiddleware):
 
     def __init__(self, crawler):
@@ -110,3 +113,21 @@ class RetryMiddleware(object):
             return request.replace(dont_filter=True)
         else:
             return response
+
+
+class OutputAdapterMiddleware:
+    def __init__(self, adapter):
+        self.adapter = adapter
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        bq = UploadBigquery("dev-aicam", "booking")
+        s = cls(bq)
+        # crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def process_spider_output(self, response, result, spider):
+        # Must return an iterable of Request, dict or Item objects.
+        for i in result:
+            print(f"Result: {i}")
+            yield i

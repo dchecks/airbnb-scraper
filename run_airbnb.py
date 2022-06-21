@@ -15,7 +15,6 @@ logging.basicConfig(
 logging.getLogger("__name__").setLevel(logging.DEBUG)
 
 # Connect to BigQuery project
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "../dev-aicam-a12eebd3222c.json"
 client = bigquery.Client("dev-aicam")
 
 # Create list of regions to search, from regions table
