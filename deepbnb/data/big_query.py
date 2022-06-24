@@ -1,3 +1,4 @@
+import pandas as pd
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pandas.core.frame import DataFrame
@@ -51,7 +52,7 @@ class UploadBigquery:
         #     self.client.insert_rows_from_dataframe(tbl, src)
         # except:
         job = self.client.load_table_from_dataframe(
-            src, f"{self.project_id}.{self.data_set_id}.{table_id}"
+            src, f"{self.project_id}.{self.data_set_id}.{self.table_id}"
         )
         job.result()
 

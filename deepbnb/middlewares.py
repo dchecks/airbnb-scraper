@@ -5,20 +5,17 @@
 # See documentation in:
 # http://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
-import scrapy
 from scrapy import signals
-from logging import LoggerAdapter
-from scrapy import Spider
-from deepbnb.api.ExploreSearch import ExploreSearch
-from scrapy.selector import Selector
 import logging
 
 from scrapy.downloadermiddlewares.retry import RetryMiddleware
 from scrapy.utils.response import response_status_message
 
 import time
+import json
 
-from deepbnb.data.big_query import UploadBigquery
+from b_q import uploadbq
+from deepbnb.api.ApiBase import ApiBase
 
 
 class TooManyRequestsRetryMiddleware(RetryMiddleware):
@@ -116,18 +113,22 @@ class RetryMiddleware(object):
 
 
 class OutputAdapterMiddleware:
-    def __init__(self, adapter):
-        self.adapter = adapter
+    # def __init__(self, adapter):
+    #     self.adapter = adapter
+    #     # self.data_set_id = data_set_id
+    #     # self.project_id = project_id
+    #     # self.table_id = table_id
 
     @classmethod
     def from_crawler(cls, crawler):
-        bq = UploadBigquery("dev-aicam", "booking")
-        s = cls(bq)
+        # bq = uploadbq()
+        s = cls()
         # crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
 
     def process_spider_output(self, response, result, spider):
         # Must return an iterable of Request, dict or Item objects.
         for i in result:
-            print(f"Result: {i}")
+            print(f"getting response body")
+            uploadbq(response)
             yield i
