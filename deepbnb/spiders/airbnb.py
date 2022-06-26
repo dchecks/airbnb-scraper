@@ -56,10 +56,6 @@ class AirbnbSpider(scrapy.Spider):
         self.__sw_lat = sw_lat
         self.__sw_lng = sw_lng
 
-        """BigQuery config"""
-        self.project = kwargs.get("project", "dev-aicam")
-        self.dataset = kwargs.get("dataset", "booking")
-
     def parse(self, response, **kwargs):
         """Default parse method."""
         data = self.__explore_search.read_data(response)
