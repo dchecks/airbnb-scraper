@@ -29,9 +29,6 @@ def retrieve_locations():
 def run_scrape(spider_name):
     regions = retrieve_locations()
 
-    # TODO Debug
-    regions = regions[:1]
-
     for region in regions:
         query_str = f"{region}, New Zealand"
         logging.debug(f"Scraping search string: '{query_str}'")

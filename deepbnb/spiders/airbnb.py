@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import date, timedelta
 
 import scrapy
@@ -113,6 +114,7 @@ class AirbnbSpider(scrapy.Spider):
     def start_requests(self):
         """Spider entry point. Generate the first search request(s)."""
         # self.logger.info(f'starting survey for: {self.__query}')
+        assert os.environ['http_proxy'] is not None
 
         api_key = self.settings.get('AIRBNB_API_KEY')
         self.__explore_search = ExploreSearch(
