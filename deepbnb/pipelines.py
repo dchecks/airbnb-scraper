@@ -202,7 +202,7 @@ class BigqueryPipeline:
 
     def process_item(self, item, spider):
         properties = extract_item_todict(item)
-        self.big_query.upload_dict(properties, "deepbnb_discover-dev ")
+        self.big_query.upload_dict(properties, "deepbnb_discover-dev")
 
 class DuplicatesPipeline:
     """Looks for duplicate items, and drops those items that were already processed
