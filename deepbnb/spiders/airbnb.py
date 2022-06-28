@@ -1,3 +1,4 @@
+import logging
 from datetime import date, timedelta
 
 import scrapy
@@ -5,7 +6,6 @@ import scrapy
 from deepbnb.api.ExploreSearch import ExploreSearch
 from deepbnb.api.PdpPlatformSections import PdpPlatformSections
 from deepbnb.api.PdpReviews import PdpReviews
-from deepbnb.model import Listing
 
 
 class AirbnbSpider(scrapy.Spider):
@@ -98,11 +98,21 @@ class AirbnbSpider(scrapy.Spider):
             for listing_id in listing_ids:  # request each property page
                 yield self.__pdp_platform_sections.api_request(listing_id)
 
+    def price_list(self):
+        prices1 = list(range(10, 1601, 20))
+        prices2 = list(range(10, 1601, 30))
+        prices3 = list(range(0, 1601, 40))
+        price_list1 = list(zip(prices1, prices1[1:]))
+        price_list2 = list(zip(prices2, prices2[1:]))
+        price_list3 = list(zip(prices3, prices3[1:]))
+        price_range_list = price_list1 + price_list2 + price_list3
+        price_range_list.append((1500, 50000))
+
+        return price_range_list
+
     def start_requests(self):
         """Spider entry point. Generate the first search request(s)."""
         # self.logger.info(f'starting survey for: {self.__query}')
-        if 'deepbnb.pipelines.ElasticBnbPipeline' in self.settings.get('ITEM_PIPELINES'):
-            self.__create_index_if_not_exists()
 
         api_key = self.settings.get('AIRBNB_API_KEY')
         self.__explore_search = ExploreSearch(
@@ -126,50 +136,16 @@ class AirbnbSpider(scrapy.Spider):
 
         # get params from injected constructor values
         params = {}
-        if self.__price_max:
-            params['priceMax'] = self.__price_max
-
-        if self.__price_min:
-            params['priceMin'] = self.__price_min
-        
-        if self.__ne_lat:
-            params['ne_lat'] = self.__ne_lat
-
-        if self.__ne_lng:
-            params['ne_lng'] = self.__ne_lng
-
-        if self.__sw_lat:
-            params['sw_lat'] = self.__sw_lat
-
-        if self.__sw_lng:
-            params['sw_lng'] = self.__sw_lng
-        
-        # # price_list1 = list(range(self.price_range[0], self.price_range[1] + 1, self.price_range[2]))
-
-        price_range_list = []
-        prices1 = list(range(10, 1601, 20))
-        prices2 = list(range(10, 1601, 30))
-        prices3 = list(range(0, 1601, 40))
-        price_list1 = list(zip(prices1, prices1[1:]))
-        price_list2 = list(zip(prices2, prices2[1:]))
-        price_list3 = list(zip(prices3, prices3[1:]))
-        price_range_list = price_list1 + price_list2 + price_list3
-        price_range_list.append((1500, 50000))
-
-        # # create 4 lists each apart from the previous one by 8 and has increment as 32
-        # for i in range(2):
-        #     prices = list(range(i*8, 1537, 32))
-        #     price_list = list(zip(prices, prices[1:]))
-        #     price_range_list += price_list
-        # price_range_list.append((1500, 50000))
+        price_range_list = self.price_list()
+        logging.debug("Searching over %s prices" % len(price_range_list))
 
         for min_price, max_price in price_range_list:
+            self.__set_price_params(price_max=max_price, price_min=min_price)
             params['priceMin'] = min_price
             params['priceMax'] = max_price
             if self.__checkin:  # assume self._checkout also
                 checkin, checkout, checkin_range_spec, checkout_range_spec = self._process_checkin_vars()
-                yield from self.__explore_search.perform_checkin_start_requests(
-                    checkin, checkout, checkin_range_spec, checkout_range_spec, params)
+                yield from self.__explore_search.perform_checkin_start_requests(checkin, checkout, checkin_range_spec, checkout_range_spec, params)
             else:
                 yield self.__explore_search.api_request(self.__query, params, self.__explore_search.parse_landing_page)
 
@@ -232,12 +208,6 @@ class AirbnbSpider(scrapy.Spider):
             # use total price if dates given, price rate otherwise. can't show total price if there are no dates.
             'total_price':            pricing['price']['total']['amount'] if self.__checkin else None
         }
-
-    def __create_index_if_not_exists(self):
-        index_name = self.settings.get('ELASTICSEARCH_INDEX')
-        index = Index(index_name)
-        if not index.exists():
-            Listing.init(index_name)
 
     def __get_listings_from_sections(self, sections: list) -> list:
         """Get listings from "sections" (i.e. search results page sections).

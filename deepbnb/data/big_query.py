@@ -1,12 +1,17 @@
+import pandas as pd
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from pandas.core.frame import DataFrame
+
+from deepbnb.data.schema import airbnb_disco_schema
+
 
 class UploadBigquery:
     def __init__(self, project_id: str, data_set_id: str):
         self.client = bigquery.Client()
         self.data_set_id = data_set_id
         self.project_id = project_id
+        self.job_config = bigquery.LoadJobConfig(schema=airbnb_disco_schema)
 
     def move_to_his(self):
         source_list = [
@@ -40,6 +45,12 @@ class UploadBigquery:
         except NotFound:
             print("Table {} is not found.".format(table_id))
             return False
+
+    def upload_dict(self, data: dict, table: str):
+        jdict = [data]
+        tbl_str = f"{self.project_id}.{self.data_set_id}.{table}"
+        job = self.client.load_table_from_json(jdict, tbl_str, job_config=self.job_config)
+        job.result()
 
     def upload(self, buff, table_id):
         if type(buff) != DataFrame:

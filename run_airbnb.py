@@ -1,12 +1,8 @@
 import logging
-import os
 import time
-from datetime import datetime
 
 import scrapy.cmdline
 from google.cloud import bigquery
-
-from deepbnb.middlewares import DeepbnbSpiderMiddleware
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -14,26 +10,32 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()])
 logging.getLogger("__name__").setLevel(logging.DEBUG)
 
-# Connect to BigQuery project
-client = bigquery.Client("dev-aicam")
+def retrieve_locations():
+    # Connect to BigQuery project
+    client = bigquery.Client("dev-aicam")
 
-# Create list of regions to search, from regions table
-query = """
-        SELECT region as city,SubRegion,Air_bnb as city_url FROM `dev-aicam.booking.region` 
-"""
-region_query = client.query(query)
-regions = []
-for row in region_query:
-    regions.append(row[1])
+    # Create list of regions to search, from regions table
+    query = """
+            SELECT SubRegion FROM `dev-aicam.booking.region` 
+    """
+
+    region_query = client.query(query)
+    regions = []
+    for row in region_query:
+        regions.append(row[0])
+
+    return regions
 
 def run_scrape(spider_name):
-    scrape_date = datetime.now().strftime("%Y:%m:%d")
-    output_str = f"weekly/{scrape_date}-nz.csv:csv"
+    regions = retrieve_locations()
+
+    # TODO Debug
+    regions = regions[:1]
 
     for region in regions:
         query_str = f"{region}, New Zealand"
-        logging.debug(f"Scraping search string: '{query_str}' to {output_str}")
-        scrapy.cmdline.execute(["scrapy", "crawl", f"{spider_name}", "-a", f"query={query_str}", "-o", f"{output_str}"])
+        logging.debug(f"Scraping search string: '{query_str}'")
+        scrapy.cmdline.execute(["scrapy", "crawl", f"{spider_name}", "-a", f"query={query_str}"])
         time.sleep(5)
 
 

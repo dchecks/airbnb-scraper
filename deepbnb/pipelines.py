@@ -3,12 +3,12 @@ import elasticsearch.exceptions
 import re
 import webbrowser
 import os
-import csv
 import pandas as pd
 import numpy as np
 
 from datetime import datetime
 
+from deepbnb.data.big_query import UploadBigquery
 from deepbnb.model import Listing
 from scrapy.exceptions import DropItem
 from itemadapter import ItemAdapter
@@ -112,10 +112,59 @@ class BnbPipeline:
 
         return item
 
+def extract_item_todict(item):
+    properties = {
+        'access':                 item['access'],
+        'additional_house_rules': item['additional_house_rules'],
+        'allows_events':          item['allows_events'],
+        # 'amenities':              item['amenities'], TODO List
+        'amenity_ids':            item['amenity_ids'],
+        # 'avg_rating':             item['avg_rating'], TODO Problematic
+        'bathrooms':              item['bathrooms'],
+        'bedrooms':               item['bedrooms'],
+        'beds':                   item['beds'],
+        'business_travel_ready':  item['business_travel_ready'],
+        'city':                   item['city'],
+        'country':                item['country'],
+        # 'coordinates':            {'lon': item['longitude'], 'lat': item['latitude']},
+        'description':            item['description'],
+        'host_id':                item['host_id'],
+        # 'house_rules':            item['house_rules'], # TODO List str
+        # 'interaction':            item.get('interaction'), # TODO ?
+        'is_hotel':               item['is_hotel'],
+        # 'monthly_price_factor':   item['monthly_price_factor'], # TODO ?
+        'name':                   item['name'],
+        # 'neighborhood_overview':  item['neighborhood_overview'], # TODO ?
+        'person_capacity':        item['person_capacity'],
+        'photo_count':            item['photo_count'],
+        # 'photos':                 item['photos'], # TODO list int
+        'place_id':               item['place_id'],
+        # 'price_rate':             item['price_rate'], # TODO ?
+        # 'price_rate_type':        item['price_rate_type'], # TODO ?
+        # 'province':               item['province'], # TODO ?
+        'rating_accuracy':        item['rating_accuracy'],
+        'rating_checkin':         item['rating_checkin'],
+        'rating_cleanliness':     item['rating_cleanliness'],
+        'rating_communication':   item['rating_communication'],
+        'rating_location':        item['rating_location'],
+        'rating_value':           item['rating_value'],
+        'review_count':           item['review_count'],
+        # 'review_score':           item.get('review_score'), # TODO ?
+        # 'reviews':                item.get('reviews'), # TODO List reviews
+        'room_and_property_type': item['room_and_property_type'],
+        'room_type':              item['room_type'],
+        'room_type_category':     item['room_type_category'],
+        'satisfaction_guest':     item['satisfaction_guest'],
+        # 'datetime_scrape':        datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+        'star_rating':            item['star_rating'],
+        'state':                  item['state'],
+        'transit':                item.get('transit'),
+        'url':                    item['url'],
+        # 'weekly_price_factor':    item['weekly_price_factor'] # TODO ?
+    }
+    return properties
 
 class ElasticBnbPipeline:
-    _datetime_scrape = datetime.now()
-
     @classmethod
     def from_crawler(cls, crawler):
         return cls(elasticsearch_index=crawler.settings.get('ELASTICSEARCH_INDEX'))
@@ -126,55 +175,7 @@ class ElasticBnbPipeline:
 
     def process_item(self, item, spider):
         """Insert / update items in ElasticSearch."""
-        properties = {
-            'access':                 item['access'],
-            'additional_house_rules': item['additional_house_rules'],
-            'allows_events':          item['allows_events'],
-            'amenities':              item['amenities'],
-            'amenity_ids':            item['amenity_ids'],
-            'avg_rating':             item['avg_rating'],
-            'bathrooms':              item['bathrooms'],
-            'bedrooms':               item['bedrooms'],
-            'beds':                   item['beds'],
-            'business_travel_ready':  item['business_travel_ready'],
-            'city':                   item['city'],
-            'country':                item['country'],
-            'coordinates':            {'lon': item['longitude'], 'lat': item['latitude']},
-            'description':            item['description'],
-            'host_id':                item['host_id'],
-            'house_rules':            item['house_rules'],
-            'interaction':            item.get('interaction'),
-            'is_hotel':               item['is_hotel'],
-            'monthly_price_factor':   item['monthly_price_factor'],
-            'name':                   item['name'],
-            'neighborhood_overview':  item['neighborhood_overview'],
-            'person_capacity':        item['person_capacity'],
-            'photo_count':            item['photo_count'],
-            'photos':                 item['photos'],
-            'place_id':               item['place_id'],
-            'price_rate':             item['price_rate'],
-            'price_rate_type':        item['price_rate_type'],
-            'province':               item['province'],
-            'rating_accuracy':        item['rating_accuracy'],
-            'rating_checkin':         item['rating_checkin'],
-            'rating_cleanliness':     item['rating_cleanliness'],
-            'rating_communication':   item['rating_communication'],
-            'rating_location':        item['rating_location'],
-            'rating_value':           item['rating_value'],
-            'review_count':           item['review_count'],
-            'review_score':           item.get('review_score'),
-            'reviews':                item.get('reviews'),
-            'room_and_property_type': item['room_and_property_type'],
-            'room_type':              item['room_type'],
-            'room_type_category':     item['room_type_category'],
-            'satisfaction_guest':     item['satisfaction_guest'],
-            'datetime_scrape':        self._datetime_scrape,
-            'star_rating':            item['star_rating'],
-            'state':                  item['state'],
-            'transit':                item.get('transit'),
-            'url':                    item['url'],
-            'weekly_price_factor':    item['weekly_price_factor']
-        }
+        properties = extract_item_todict(item)
 
         # update if exists, else insert new
         try:
@@ -186,6 +187,22 @@ class ElasticBnbPipeline:
             listing.save(index=self._elasticsearch_index)
 
         return item
+
+
+class BigqueryPipeline:
+    def __init__(self, big_query: UploadBigquery):
+        self.big_query = big_query
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        bq = UploadBigquery("dev-aicam", "booking")
+        s = cls(bq)
+        # crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def process_item(self, item, spider):
+        properties = extract_item_todict(item)
+        self.big_query.upload_dict(properties, "deepbnb_discover-dev ")
 
 class DuplicatesPipeline:
     """Looks for duplicate items, and drops those items that were already processed
